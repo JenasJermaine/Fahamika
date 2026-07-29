@@ -1,0 +1,39 @@
+# Fahamika Voice Pipeline — Dependencies
+# Install with: pip install -r voice/requirements.txt
+
+# Web framework
+fastapi>=0.110.0
+uvicorn[standard]>=0.29.0
+
+# Environment
+python-dotenv>=1.0.0
+
+# LLM — DeepSeek (and Ollama) via OpenAI-compatible client
+openai>=1.30.0
+
+# Speech-to-Text — Whisper
+openai-whisper>=20231117
+
+# Vector Database — Pinecone (install when API key is available)
+# pinecone-client>=4.0.0
+
+# Google Cloud TTS (optional — for TTS evaluation, Week 2)
+# google-cloud-texttospeech>=2.16.0
+
+# Utilities
+requests>=2.31.0
+pydantic>=2.5.0
+
+# FastAPI form data
+python-multipart>=0.0.9
+
+# Vector Database — Pinecone (install when API key is available)
+# pinecone-client>=4.0.0
+
+# Local embeddings — HuggingFace model (no API cost)
+sentence-transformers>=3.0.0
+
+# Testing
+pytest>=8.0.0
+pytest-asyncio>=0.24.0
+httpx>=0.27.0  # for FastAPI TestClient
