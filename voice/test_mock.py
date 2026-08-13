@@ -10,6 +10,10 @@ Usage:
   python voice/test_mock.py
 """
 
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
 import pytest
 from fastapi.testclient import TestClient
 from voice.main import app
@@ -72,14 +76,14 @@ if __name__ == "__main__":
 
     # 1. Health
     resp = client.get("/voice/health")
-    print(f"\n✅ Health: {resp.json()}")
+    print(f"\n[OK] Health: {resp.json()}")
 
     # 2. Incoming call XML
     resp = client.post("/voice/incoming", data={
         "sessionId": "smoke-1",
         "callerNumber": "+254700000000",
     })
-    print(f"✅ Incoming call XML: {len(resp.text)} chars")
+    print(f"[OK] Incoming call XML: {len(resp.text)} chars")
     print(f"   Sample: {resp.text[:200]}...")
 
     # 3. Recording callback
@@ -87,7 +91,7 @@ if __name__ == "__main__":
         "sessionId": "smoke-1",
         "recordingUrl": "https://example.com/recording.wav",
     })
-    print(f"✅ Recording callback: {len(resp.text)} chars")
+    print(f"[OK] Recording callback: {len(resp.text)} chars")
 
     # 4. Test pipeline with text (no STT/Pinecone needed — hits DeepSeek/Ollama)
     print("\n--- Testing pipeline with DeepSeek ---")
@@ -95,7 +99,7 @@ if __name__ == "__main__":
         "text": "How do I register to vote in Kenya?",
     })
     result = resp.json()
-    print(f"✅ Pipeline response ({result['duration_ms']}ms):")
+    print(f"[OK] Pipeline response ({result['duration_ms']}ms):")
     print(f"   Transcribed: {result['transcribed_text'][:80]}")
     print(f"   Matched topic: {result['matched_topic'] or '(no Pinecone)'}")
     print(f"   Response: {result['simplified_response'][:300]}")
