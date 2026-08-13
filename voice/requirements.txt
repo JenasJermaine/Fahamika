@@ -14,9 +14,6 @@ openai>=1.30.0
 # Speech-to-Text — Whisper
 openai-whisper>=20231117
 
-# Vector Database — Pinecone (install when API key is available)
-# pinecone-client>=4.0.0
-
 # Google Cloud TTS (optional — for TTS evaluation, Week 2)
 # google-cloud-texttospeech>=2.16.0
 
@@ -27,8 +24,8 @@ pydantic>=2.5.0
 # FastAPI form data
 python-multipart>=0.0.9
 
-# Vector Database — Pinecone (install when API key is available)
-# pinecone-client>=4.0.0
+# Vector Database — Pinecone
+pinecone>=6.0.0
 
 # Local embeddings — HuggingFace model (no API cost)
 sentence-transformers>=3.0.0

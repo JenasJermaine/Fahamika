@@ -21,9 +21,7 @@ Thumbs.db
 .idea/
 
 # Models (large files)
-voice/models/*.pt
-voice/models/*.bin
-voice/models/*.onnx
+voice/models/
 
 # Audio
 voice/audio/

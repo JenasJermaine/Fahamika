@@ -23,7 +23,7 @@ def _get_pinecone_index():
         from pinecone import Pinecone
     except ImportError:
         raise ImportError(
-            "Pinecone client not installed. Run: pip install pinecone-client"
+            "Pinecone client not installed. Run: pip install pinecone"
         )
 
     pc = Pinecone(api_key=config.PINECONE_API_KEY)
@@ -78,6 +78,7 @@ def search(question: str, top_k: int = 3) -> list[dict]:
         vector=vector,
         top_k=top_k,
         include_metadata=True,
+        namespace="civic-content",
     )
 
     matches = []
