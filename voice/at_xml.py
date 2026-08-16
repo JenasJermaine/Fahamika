@@ -74,7 +74,7 @@ def say_and_redirect(text: str, redirect_url: str, voice: str = "woman") -> str:
     return f"""<?xml version="1.0" encoding="UTF-8"?>
 <Response>
     <Say voice="{voice}" playBeep="false">{_escape(text)}</Say>
-    <Redirect>{redirect_url}</Redirect>
+    <Redirect>{_escape(redirect_url)}</Redirect>
 </Response>"""
 
 
