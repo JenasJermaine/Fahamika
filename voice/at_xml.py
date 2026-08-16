@@ -23,17 +23,23 @@ def answer_say_and_record(
     finish_on_key: str = "#",
     voice: str = "woman",
 ) -> str:
-    """Answer, play a prompt, then record the caller."""
+    """Answer, play a prompt, then record the caller.
+
+    Per AT docs, the <Say> prompt is NESTED INSIDE <Record> for partial
+    recording (recording stops on # / maxLength and AT sends the URL
+    mid-call). A sibling <Say> would be treated as a terminal recording.
+    """
     return f"""<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-    <Say voice="{voice}" playBeep="false">{_escape(prompt)}</Say>
     <Record
         finishOnKey="{finish_on_key}"
         maxLength="{max_length}"
         trimSilence="true"
         playBeep="true"
         callbackUrl="{recording_url_callback}"
-    />
+    >
+        <Say voice="{voice}" playBeep="false">{_escape(prompt)}</Say>
+    </Record>
 </Response>"""
 
 
@@ -54,18 +60,23 @@ def say_and_record_again(
     finish_on_key: str = "#",
     voice: str = "woman",
 ) -> str:
-    """Speak the answer, then prompt for another question and record."""
+    """Speak the answer, then prompt for another question and record.
+
+    The answer is spoken as a sibling <Say> BEFORE the record block;
+    the "press #" prompt is NESTED INSIDE <Record> (AT partial recording).
+    """
     return f"""<?xml version="1.0" encoding="UTF-8"?>
 <Response>
     <Say voice="{voice}" playBeep="false">{_escape(answer)}</Say>
-    <Say voice="{voice}" playBeep="false">{_escape(prompt)}</Say>
     <Record
         finishOnKey="{finish_on_key}"
         maxLength="{max_length}"
         trimSilence="true"
         playBeep="true"
         callbackUrl="{recording_url_callback}"
-    />
+    >
+        <Say voice="{voice}" playBeep="false">{_escape(prompt)}</Say>
+    </Record>
 </Response>"""
 
 
@@ -99,14 +110,15 @@ def play_and_record_again(
     return f"""<?xml version="1.0" encoding="UTF-8"?>
 <Response>
     <Play url="{audio_url}"/>
-    <Say voice="{voice}" playBeep="false">{_escape(prompt)}</Say>
     <Record
         finishOnKey="{finish_on_key}"
         maxLength="{max_length}"
         trimSilence="true"
         playBeep="true"
         callbackUrl="{recording_url_callback}"
-    />
+    >
+        <Say voice="{voice}" playBeep="false">{_escape(prompt)}</Say>
+    </Record>
 </Response>"""
 
 
