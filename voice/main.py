@@ -141,6 +141,12 @@ async def handle_recording(request: Request):
     recording_url = form_data.get("recordingUrl", "")
     is_active = form_data.get("isActive", "1")
 
+    # End-of-call duplicate — AT sends isActive=0 AFTER we've already
+    # answered mid-call. Ignore it to avoid running the pipeline twice.
+    if is_active == "0":
+        logger.info(f"[END OF CALL] session {session_id} — ignoring (already answered mid-call)")
+        return PlainTextResponse("", media_type="text/plain")
+
     logger.info(f"🎙️ Mid-call recording received (session {session_id}, isActive={is_active})")
     logger.info(f"   Recording URL: {recording_url}")
 
