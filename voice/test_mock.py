@@ -44,13 +44,14 @@ def test_incoming_call_returns_xml():
 
 
 def test_recording_endpoint():
-    """Recording callback should return a Redirect."""
+    """Recording callback should return XML (inline pipeline or graceful error)."""
     resp = client.post("/voice/recording", data={
         "sessionId": "test-456",
         "recordingUrl": "https://example.com/recording.wav",
     })
     assert resp.status_code == 200
-    assert "<Redirect>" in resp.text
+    # With a fake recording URL, pipeline download fails → graceful error XML
+    assert "<Response>" in resp.text
 
 
 def test_test_endpoint_with_text():

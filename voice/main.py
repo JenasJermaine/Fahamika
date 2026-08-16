@@ -82,60 +82,36 @@ async def health():
 @app.post("/voice/incoming")
 async def handle_incoming_call(request: Request):
     """
-    AT calls this endpoint for ALL call events (fresh calls AND recording
-    completions, since AT ignores our <Record callbackUrl>). We branch:
-      - If the request has a recordingUrl → it's a recording callback → run pipeline
-      - If not → fresh call → welcome + record
+    AT's dashboard callback URL. Receives TWO kinds of notifications:
+      - isActive=1, no recordingUrl → fresh call → answer + record
+      - isActive=0 → end-of-call notification (billing) → log only, no response
+
+    The MID-CALL recording callback goes to /voice/recording (the callbackUrl
+    inside our <Record> tag), NOT here.
     """
     form_data = dict(await request.form())
+    is_active = form_data.get("isActive", "1")
+    session_id = form_data.get("sessionId", "unknown")
 
-    # DEBUG: log everything AT sends so we can confirm the fields
-    logger.info(f"[DEBUG] Incoming form fields: {list(form_data.keys())}")
-
-    # ── Branch 1: Recording callback ──────────────────────────
-    recording_url = form_data.get("recordingUrl", "")
-    if recording_url:
-        session_id = form_data.get("sessionId", "unknown")
-        logger.info(f"🎙️ Recording callback detected (session {session_id})")
-        # Log values so we can understand AT's call state
-        for key in ("callSessionState", "isActive", "status", "durationInSeconds"):
-            logger.info(f"    {key} = {form_data.get(key)}")
-
-        # Process INLINE (models are preloaded at startup, so this is fast)
-        try:
-            result: PipelineResult = run(PipelineInput(
-                audio_url=recording_url,
-                session_id=session_id,
-            ))
-        except Exception as e:
-            logger.exception(f"Pipeline failed for session {session_id}")
-            xml = at_xml.say_and_hangup(
-                "Samahani, kuna tatizo la kiufundi. Tafadhali jaribu tena baadaye."
-            )
-            return PlainTextResponse(xml, media_type="application/xml")
-
-        logger.info(f"✅ Pipeline result for {session_id}: {result.simplified_response[:100]}...")
-        logger.info(f"   Duration: {result.duration_ms}ms")
-
-        # Speak the answer (call may already be ending, but if still active,
-        # the caller hears it and can press # for another question)
-        base_url = str(request.base_url).rstrip("/")
-        xml = at_xml.say_and_record_again(
-            answer=result.simplified_response,
-            recording_url_callback=f"{base_url}/voice/incoming",
+    # ── End-of-call notification ─────────────────────────────
+    if is_active == "0":
+        logger.info(
+            f"[END OF CALL] session {session_id} "
+            f"duration={form_data.get('durationInSeconds')}s "
+            f"amount={form_data.get('amount')} {form_data.get('currencyCode')}"
         )
-        return PlainTextResponse(xml, media_type="application/xml")
+        # AT expects no response for end-of-call notifications
+        return PlainTextResponse("", media_type="text/plain")
 
-    # ── Branch 2: Fresh incoming call ─────────────────────────
-    caller = ATCallerInfo.model_validate(form_data)
+    # ── Fresh incoming call ──────────────────────────────────
+    caller_number = form_data.get("callerNumber", "unknown")
+    logger.info(f"📞 Incoming call from {caller_number} (session: {session_id})")
 
-    logger.info(f"📞 Incoming call from {caller.caller_number} (session: {caller.session_id})")
-
-    # Build the URL where AT should send the recording
+    # The callbackUrl AT will POST to when recording finishes MID-CALL
     base_url = str(request.base_url).rstrip("/")
-    recording_callback = f"{base_url}/voice/incoming"
+    recording_callback = f"{base_url}/voice/recording"
 
-    # Welcome + prompt + record
+    # Welcome + prompt + record (Say NESTED inside Record per AT docs)
     welcome = (
         "Karibu Fahamika. Welcome to Fahamika. "
         "Please ask your question about civic services, rights, or government information "
@@ -149,38 +125,53 @@ async def handle_incoming_call(request: Request):
         finish_on_key="#",
     )
 
-    logger.info(f"→ Sent Record command to AT for session {caller.session_id}")
+    logger.info(f"→ Sent Record command to AT for session {session_id}")
     return PlainTextResponse(xml, media_type="application/xml")
 
 
 @app.post("/voice/recording")
 async def handle_recording(request: Request):
     """
-    AT calls this after recording completes.
-    We download the recording, transcribe it, then redirect
-    to the process endpoint for the AI pipeline.
+    AT POSTs here when recording finishes MID-CALL (the callbackUrl inside
+    our <Record> tag). The call is still active (isActive=1), so we run the
+    pipeline and respond with the answer + another recording (loop).
     """
     form_data = dict(await request.form())
-    rec = ATRecordingInfo.model_validate(form_data)
+    session_id = form_data.get("sessionId", "unknown")
+    recording_url = form_data.get("recordingUrl", "")
+    is_active = form_data.get("isActive", "1")
 
-    logger.info(f"🎙️ Recording received for session {rec.session_id}")
-    logger.info(f"   Recording URL: {rec.recording_url}")
+    logger.info(f"🎙️ Mid-call recording received (session {session_id}, isActive={is_active})")
+    logger.info(f"   Recording URL: {recording_url}")
 
-    if not rec.recording_url:
-        logger.error(f"No recording URL for session {rec.session_id}")
+    if not recording_url:
+        logger.error(f"No recording URL for session {session_id}")
         xml = at_xml.say_and_hangup("Samahani, hatukuweza kupokea sauti yako. Tafadhali jaribu tena.")
         return PlainTextResponse(xml, media_type="application/xml")
 
-    # Store the recording URL in session — will transcribe in /process
+    # Run the pipeline INLINE (models preloaded at startup)
+    try:
+        result: PipelineResult = run(PipelineInput(
+            audio_url=recording_url,
+            session_id=session_id,
+        ))
+    except Exception as e:
+        logger.exception(f"Pipeline failed for session {session_id}")
+        xml = at_xml.say_and_hangup(
+            "Samahani, kuna tatizo la kiufundi. Tafadhali jaribu tena baadaye."
+        )
+        return PlainTextResponse(xml, media_type="application/xml")
+
+    logger.info(f"✅ Pipeline result for {session_id}: {result.simplified_response[:100]}...")
+    logger.info(f"   Duration: {result.duration_ms}ms")
+
+    # Loop: speak the answer, then record the next question
     base_url = str(request.base_url).rstrip("/")
-    process_url = f"{base_url}/voice/process?sessionId={rec.session_id}&recordingUrl={rec.recording_url}"
-
-    # Tell AT to redirect to our processing endpoint
-    xml = at_xml.say_and_redirect(
-        text="Asante. Please wait while we find your answer.",
-        redirect_url=process_url,
+    recording_callback = f"{base_url}/voice/recording"
+    xml = at_xml.say_and_record_again(
+        answer=result.simplified_response,
+        recording_url_callback=recording_callback,
     )
-
     return PlainTextResponse(xml, media_type="application/xml")
 
 
