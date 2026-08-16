@@ -57,18 +57,53 @@ async def health():
 @app.post("/voice/incoming")
 async def handle_incoming_call(request: Request):
     """
-    AT calls this when a user dials the Fahamika number.
-    We respond with XML that answers, plays a welcome message,
-    and records the caller's question.
+    AT calls this endpoint for ALL call events (fresh calls AND recording
+    completions, since AT ignores our <Record callbackUrl>). We branch:
+      - If the request has a recordingUrl → it's a recording callback → run pipeline
+      - If not → fresh call → welcome + record
     """
     form_data = dict(await request.form())
+
+    # DEBUG: log everything AT sends so we can confirm the fields
+    logger.info(f"[DEBUG] Incoming form fields: {list(form_data.keys())}")
+
+    # ── Branch 1: Recording callback ──────────────────────────
+    recording_url = form_data.get("recordingUrl", "")
+    if recording_url:
+        session_id = form_data.get("sessionId", "unknown")
+        logger.info(f"🎙️ Recording callback detected (session {session_id})")
+
+        try:
+            result: PipelineResult = run(PipelineInput(
+                audio_url=recording_url,
+                session_id=session_id,
+            ))
+        except Exception as e:
+            logger.exception(f"Pipeline failed for session {session_id}")
+            xml = at_xml.say_and_hangup(
+                "Samahani, kuna tatizo la kiufundi. Tafadhali jaribu tena baadaye."
+            )
+            return PlainTextResponse(xml, media_type="application/xml")
+
+        logger.info(f"✅ Pipeline result for {session_id}: {result.simplified_response[:100]}...")
+        logger.info(f"   Duration: {result.duration_ms}ms")
+
+        # Loop: speak answer, then offer another question
+        base_url = str(request.base_url).rstrip("/")
+        xml = at_xml.say_and_record_again(
+            answer=result.simplified_response,
+            recording_url_callback=f"{base_url}/voice/incoming",
+        )
+        return PlainTextResponse(xml, media_type="application/xml")
+
+    # ── Branch 2: Fresh incoming call ─────────────────────────
     caller = ATCallerInfo.model_validate(form_data)
 
     logger.info(f"📞 Incoming call from {caller.caller_number} (session: {caller.session_id})")
 
     # Build the URL where AT should send the recording
     base_url = str(request.base_url).rstrip("/")
-    recording_callback = f"{base_url}/voice/recording"
+    recording_callback = f"{base_url}/voice/incoming"
 
     # Welcome + prompt + record
     welcome = (
