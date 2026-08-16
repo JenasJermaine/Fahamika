@@ -97,18 +97,32 @@ async def handle_incoming_call(request: Request):
     if recording_url:
         session_id = form_data.get("sessionId", "unknown")
         logger.info(f"🎙️ Recording callback detected (session {session_id})")
+        # Log values so we can understand AT's call state
+        for key in ("callSessionState", "isActive", "status", "durationInSeconds"):
+            logger.info(f"    {key} = {form_data.get(key)}")
 
-        # Respond IMMEDIATELY with "please wait" + redirect to /voice/process.
-        # The redirect gives the slow AI pipeline a fresh timeout window
-        # (AT's callback timeout is ~30s; running inline would blow it).
+        # Process INLINE (models are preloaded at startup, so this is fast)
+        try:
+            result: PipelineResult = run(PipelineInput(
+                audio_url=recording_url,
+                session_id=session_id,
+            ))
+        except Exception as e:
+            logger.exception(f"Pipeline failed for session {session_id}")
+            xml = at_xml.say_and_hangup(
+                "Samahani, kuna tatizo la kiufundi. Tafadhali jaribu tena baadaye."
+            )
+            return PlainTextResponse(xml, media_type="application/xml")
+
+        logger.info(f"✅ Pipeline result for {session_id}: {result.simplified_response[:100]}...")
+        logger.info(f"   Duration: {result.duration_ms}ms")
+
+        # Speak the answer (call may already be ending, but if still active,
+        # the caller hears it and can press # for another question)
         base_url = str(request.base_url).rstrip("/")
-        process_url = (
-            f"{base_url}/voice/process"
-            f"?sessionId={session_id}&recordingUrl={quote(recording_url, safe='')}"
-        )
-        xml = at_xml.say_and_redirect(
-            text="Asante. Please wait while we find your answer.",
-            redirect_url=process_url,
+        xml = at_xml.say_and_record_again(
+            answer=result.simplified_response,
+            recording_url_callback=f"{base_url}/voice/incoming",
         )
         return PlainTextResponse(xml, media_type="application/xml")
 
