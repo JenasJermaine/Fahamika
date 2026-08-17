@@ -27,11 +27,17 @@ def synthesize(text: str, output_path: str | None = None, session_id: str = "unk
     Returns:
         Path to the generated audio file.
     """
+    import time
+
     provider = config.TTS_PROVIDER
 
     if output_path is None:
         config.AUDIO_DIR.mkdir(parents=True, exist_ok=True)
-        output_path = str(config.AUDIO_DIR / f"{session_id}_response.wav")
+        # Unique per answer: session + ms timestamp.
+        # (Session ID alone collides across questions in the same call,
+        # and AT caches audio by URL — replaying the previous answer.)
+        unique_suffix = int(time.time() * 1000)
+        output_path = str(config.AUDIO_DIR / f"{session_id}_{unique_suffix}_response.wav")
 
     if provider == "piper":
         return _synthesize_piper(text, output_path)
