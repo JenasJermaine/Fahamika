@@ -49,6 +49,8 @@ class Config:
 
     # TTS
     TTS_PROVIDER: str = os.getenv("TTS_PROVIDER", "piper")
+    SAUTI_API_URL: str = os.getenv("SAUTI_API_URL", "https://msingi-ai--sauti-inference-inferenceapi-asgi-app.modal.run/v1/synthesize")
+    SAUTI_SPEAKER: int = int(os.getenv("SAUTI_SPEAKER", "1"))
 
     # Paths
     PROJECT_ROOT: Path = PROJECT_ROOT

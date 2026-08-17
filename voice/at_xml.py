@@ -55,7 +55,7 @@ def say_and_hangup(text: str, voice: str = "woman") -> str:
 def say_and_record_again(
     answer: str,
     recording_url_callback: str,
-    prompt: str = "Press hash to ask another question, or simply hang up.",
+    prompt: str = "Please ask your question after the beep. Press hash when done.",
     max_length: int = 30,
     finish_on_key: str = "#",
     voice: str = "woman",
@@ -101,7 +101,7 @@ def play_and_hangup(audio_url: str) -> str:
 def play_and_record_again(
     audio_url: str,
     recording_url_callback: str,
-    prompt: str = "Press hash to ask another question, or simply hang up.",
+    prompt: str = "Please ask your question after the beep. Press hash when done.",
     max_length: int = 30,
     finish_on_key: str = "#",
     voice: str = "woman",

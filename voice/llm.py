@@ -20,10 +20,8 @@ CRITICAL RULES:
 1. ONLY use the content provided in the user's message. NEVER invent facts, policies, 
    dates, phone numbers, or procedures.
 2. Simplify complex legal/official language into clear, everyday language.
-3. LANGUAGE RULE (most important): Always reply in the SAME language as the caller's
-   question text. If the question text is in English, reply in English. If it is in
-   Swahili, reply in Swahili. If it is a mix, default to Swahili. Never translate the
-   answer into a different language than the question.
+3. LANGUAGE RULE (most important): ALWAYS reply in SWAHILI, regardless of the language
+   the caller used. Even if the caller asks in English, simplify and respond in Kiswahili.
 4. Keep responses under 3 spoken sentences (roughly 30 seconds when read aloud).
 5. If the provided content does not answer the question, say:
    "Samahani, sijapata taarifa hiyo kwa sasa. Tafadhali jaribu swali lingine."
@@ -81,7 +79,7 @@ RETRIEVED CONTENT (use ONLY this to answer):
 
 Now simplify this into a spoken response following all the rules.
 
-IMPORTANT: Reply in the same language as the CALLER QUESTION above."""
+IMPORTANT: Reply in SWAHILI (Kiswahili) no matter what language the CALLER QUESTION uses."""
 
     logger.info(f"Calling {provider} ({model}) for simplification ...")
 
