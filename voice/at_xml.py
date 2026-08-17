@@ -43,6 +43,31 @@ def answer_say_and_record(
 </Response>"""
 
 
+def answer_play_and_record(
+    prompt_audio_url: str,
+    recording_url_callback: str,
+    max_length: int = 30,
+    finish_on_key: str = "#",
+) -> str:
+    """Answer, play a pre-recorded prompt via <Play>, then record the caller.
+
+    The <Play> prompt is NESTED INSIDE <Record> for partial recording
+    (stops on # / maxLength, AT sends URL mid-call).
+    """
+    return f"""<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+    <Record
+        finishOnKey="{finish_on_key}"
+        maxLength="{max_length}"
+        trimSilence="true"
+        playBeep="true"
+        callbackUrl="{recording_url_callback}"
+    >
+        <Play url="{prompt_audio_url}"/>
+    </Record>
+</Response>"""
+
+
 def say_and_hangup(text: str, voice: str = "woman") -> str:
     """Speak a message and hang up."""
     return f"""<?xml version="1.0" encoding="UTF-8"?>
@@ -101,12 +126,15 @@ def play_and_hangup(audio_url: str) -> str:
 def play_and_record_again(
     audio_url: str,
     recording_url_callback: str,
-    prompt: str = "Please ask your question after the beep. Press hash when done.",
+    prompt_audio_url: str,
     max_length: int = 30,
     finish_on_key: str = "#",
-    voice: str = "woman",
 ) -> str:
-    """Play a TTS audio answer, then prompt for another question and record."""
+    """Play a TTS audio answer, then play a pre-recorded prompt, then record.
+
+    The answer is a sibling <Play> BEFORE the record block; the prompt is
+    NESTED INSIDE <Record> (AT partial recording).
+    """
     return f"""<?xml version="1.0" encoding="UTF-8"?>
 <Response>
     <Play url="{audio_url}"/>
@@ -117,7 +145,7 @@ def play_and_record_again(
         playBeep="true"
         callbackUrl="{recording_url_callback}"
     >
-        <Say voice="{voice}" playBeep="false">{_escape(prompt)}</Say>
+        <Play url="{prompt_audio_url}"/>
     </Record>
 </Response>"""
 

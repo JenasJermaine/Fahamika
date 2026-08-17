@@ -6,7 +6,6 @@ Endpoints:
   GET  /voice/health       — Health check
   POST /voice/incoming     — AT sends this when a call comes in
   POST /voice/recording    — AT sends this when recording completes
-  POST /voice/process      — Internal: process a recorded question
   POST /voice/test         — Test endpoint (bypasses AT, accepts text directly)
 
 Usage:
@@ -112,15 +111,11 @@ async def handle_incoming_call(request: Request):
     base_url = str(request.base_url).rstrip("/")
     recording_callback = f"{base_url}/voice/recording"
 
-    # Welcome + prompt + record (Say NESTED inside Record per AT docs)
-    welcome = (
-        "Karibu Fahamika. Welcome to Fahamika. "
-        "Please ask your question about civic services, rights, or government information "
-        "after the beep. Press hash when done."
-    )
+    # Welcome + prompt + record (Play NESTED inside Record per AT docs)
+    welcome_audio = f"{base_url}/voice/audio/prompt_welcome.wav"
 
-    xml = at_xml.answer_say_and_record(
-        prompt=welcome,
+    xml = at_xml.answer_play_and_record(
+        prompt_audio_url=welcome_audio,
         recording_url_callback=recording_callback,
         max_length=30,
         finish_on_key="#",
@@ -150,6 +145,7 @@ async def handle_recording(request: Request):
     session_id = form_data.get("sessionId", "unknown")
     recording_url = form_data.get("recordingUrl", "")
     is_active = form_data.get("isActive", "1")
+    base_url = str(request.base_url).rstrip("/")
 
     # End-of-call duplicate — AT sends isActive=0 AFTER we've already
     # answered mid-call. Ignore it to avoid running the pipeline twice.
@@ -162,7 +158,8 @@ async def handle_recording(request: Request):
 
     if not recording_url:
         logger.error(f"No recording URL for session {session_id}")
-        xml = at_xml.say_and_hangup("Samahani, hatukuweza kupokea sauti yako. Tafadhali jaribu tena.")
+        error_audio = f"{base_url}/voice/audio/prompt_error_no_audio.wav"
+        xml = at_xml.play_and_hangup(error_audio)
         return PlainTextResponse(xml, media_type="application/xml")
 
     # Run the pipeline INLINE (models preloaded at startup)
@@ -173,24 +170,22 @@ async def handle_recording(request: Request):
         ))
     except Exception as e:
         logger.exception(f"Pipeline failed for session {session_id}")
-        xml = at_xml.say_and_hangup(
-            "Samahani, kuna tatizo la kiufundi. Tafadhali jaribu tena baadaye."
-        )
+        error_audio = f"{base_url}/voice/audio/prompt_error_technical.wav"
+        xml = at_xml.play_and_hangup(error_audio)
         return PlainTextResponse(xml, media_type="application/xml")
 
     logger.info(f"✅ Pipeline result for {session_id}: {result.simplified_response[:100]}...")
     logger.info(f"   Duration: {result.duration_ms}ms")
 
-    # Loop: speak the answer, then record the next question
-    base_url = str(request.base_url).rstrip("/")
+    # Loop: play OUR Sauti TTS audio, then record the next question
     recording_callback = f"{base_url}/voice/recording"
 
-    # Loop: play OUR Sauti TTS audio, then record the next question
     if result.tts_audio_path:
         filename = Path(result.tts_audio_path).name
         audio_url = f"{base_url}/voice/audio/{filename}"
         xml = at_xml.play_and_record_again(
             audio_url=audio_url,
+            prompt_audio_url=f"{base_url}/voice/audio/prompt_ask_again.wav",
             recording_url_callback=recording_callback,
         )
     else:
@@ -199,54 +194,6 @@ async def handle_recording(request: Request):
             answer=result.simplified_response,
             recording_url_callback=recording_callback,
         )
-    return PlainTextResponse(xml, media_type="application/xml")
-
-
-@app.post("/voice/process")
-async def process_question(request: Request):
-    """
-    Internal endpoint: processes a recorded question through the AI pipeline.
-    AT redirects here after /voice/incoming detects a recording callback.
-
-    Accepts parameters from EITHER query string (redirect) or form body
-    (in case AT forwards form data), so both are supported.
-    """
-    form = {}
-    if "application/x-www-form-urlencoded" in request.headers.get("content-type", ""):
-        form = dict(await request.form())
-    query = dict(request.query_params)
-
-    session_id = form.get("sessionId") or query.get("sessionId") or "unknown"
-    recording_url = form.get("recordingUrl") or query.get("recordingUrl") or ""
-
-    logger.info(f"⚙️ Processing question for session {session_id}")
-
-    if not recording_url:
-        xml = at_xml.say_and_hangup("Samahani, hatukuweza kupokea sauti yako.")
-        return PlainTextResponse(xml, media_type="application/xml")
-
-    try:
-        result: PipelineResult = run(PipelineInput(
-            audio_url=recording_url,
-            session_id=session_id,
-        ))
-    except Exception as e:
-        logger.exception(f"Pipeline failed for session {session_id}")
-        xml = at_xml.say_and_hangup(
-            "Samahani, kuna tatizo la kiufundi. Tafadhali jaribu tena baadaye."
-        )
-        return PlainTextResponse(xml, media_type="application/xml")
-
-    logger.info(f"✅ Pipeline result for {session_id}: {result.simplified_response[:100]}...")
-    logger.info(f"   Duration: {result.duration_ms}ms")
-
-    # Loop: speak answer, then offer another question
-    base_url = str(request.base_url).rstrip("/")
-    recording_callback = f"{base_url}/voice/incoming"
-    xml = at_xml.say_and_record_again(
-        answer=result.simplified_response,
-        recording_url_callback=recording_callback,
-    )
     return PlainTextResponse(xml, media_type="application/xml")
 
 
