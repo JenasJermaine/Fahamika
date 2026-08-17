@@ -22,7 +22,7 @@ PROMPTS = {
         "haki, au taarifa za kiserikali baada ya beep. Bonyeza hash ukimaliza."
     ),
     "prompt_ask_again": (
-        "Tafadhali uliza swali lako baada ya beep. Bonyeza hash ukimaliza."
+        "Tafadhali uliza swali lako lingine baada ya beep. Bonyeza hash ukimaliza. Unaweza pia kata simu kama hauna swali lingine"
     ),
     "prompt_error_no_audio": (
         "Samahani, hatukuweza kupokea sauti yako. Tafadhali jaribu tena."
