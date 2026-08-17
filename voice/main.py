@@ -15,9 +15,10 @@ Usage:
 
 import logging
 from contextlib import asynccontextmanager
+from pathlib import Path
 from urllib.parse import quote
 from fastapi import FastAPI, Request, Form, HTTPException
-from fastapi.responses import PlainTextResponse, JSONResponse
+from fastapi.responses import PlainTextResponse, JSONResponse, FileResponse
 from shared.config import config
 from voice.schemas import PipelineInput, PipelineResult, HealthResponse, ATCallerInfo, ATRecordingInfo
 from voice import at_xml
@@ -129,6 +130,15 @@ async def handle_incoming_call(request: Request):
     return PlainTextResponse(xml, media_type="application/xml")
 
 
+@app.get("/voice/audio/{filename}")
+async def serve_audio(filename: str):
+    """Serve generated TTS WAV files so AT's <Play> can stream them."""
+    audio_path = config.AUDIO_DIR / filename
+    if not audio_path.exists():
+        raise HTTPException(404, "Audio file not found")
+    return FileResponse(audio_path, media_type="audio/wav")
+
+
 @app.post("/voice/recording")
 async def handle_recording(request: Request):
     """
@@ -174,10 +184,21 @@ async def handle_recording(request: Request):
     # Loop: speak the answer, then record the next question
     base_url = str(request.base_url).rstrip("/")
     recording_callback = f"{base_url}/voice/recording"
-    xml = at_xml.say_and_record_again(
-        answer=result.simplified_response,
-        recording_url_callback=recording_callback,
-    )
+
+    # Loop: play OUR Sauti TTS audio, then record the next question
+    if result.tts_audio_path:
+        filename = Path(result.tts_audio_path).name
+        audio_url = f"{base_url}/voice/audio/{filename}"
+        xml = at_xml.play_and_record_again(
+            audio_url=audio_url,
+            recording_url_callback=recording_callback,
+        )
+    else:
+        # Fallback: AT's <Say> voice
+        xml = at_xml.say_and_record_again(
+            answer=result.simplified_response,
+            recording_url_callback=recording_callback,
+        )
     return PlainTextResponse(xml, media_type="application/xml")
 
 

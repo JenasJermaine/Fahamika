@@ -35,6 +35,8 @@ def synthesize(text: str, output_path: str | None = None, session_id: str = "unk
 
     if provider == "piper":
         return _synthesize_piper(text, output_path)
+    elif provider == "sauti":
+        return _synthesize_sauti(text, output_path)
     elif provider == "google-cloud":
         return _synthesize_google_cloud(text, output_path)
     elif provider == "intron-sahara":
@@ -123,6 +125,30 @@ def _synthesize_intron_sahara(text: str, output_path: str) -> str:
     """
     logger.warning("Intron Sahara TTS not yet integrated — using fallback.")
     return _synthesize_fallback(text, output_path)
+
+
+def _synthesize_sauti(text: str, output_path: str) -> str:
+    """
+    Use the Sauti Kiswahili TTS API (Msingi AI).
+    Open endpoint, no auth required.
+    """
+    import requests
+
+    api_url = config.SAUTI_API_URL
+    speaker = config.SAUTI_SPEAKER
+
+    logger.info(f"Synthesizing {len(text)} chars with Sauti (speaker {speaker}) ...")
+    resp = requests.post(
+        api_url,
+        params={"format": "wav"},
+        json={"text": text, "speaker": speaker},
+        timeout=60,
+    )
+    resp.raise_for_status()
+
+    Path(output_path).write_bytes(resp.content)
+    logger.info(f"TTS audio saved to {output_path}")
+    return output_path
 
 
 def _synthesize_fallback(text: str, output_path: str) -> str:
