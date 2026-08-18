@@ -4,6 +4,7 @@ Fahamika Voice Pipeline — Speech-to-Text (Whisper)
 
 import os
 import logging
+import time
 from pathlib import Path
 import requests
 from shared.config import config
@@ -52,8 +53,22 @@ def download_and_transcribe(audio_url: str, session_id: str) -> str:
     local_path = config.AUDIO_DIR / f"{session_id}.wav"
 
     logger.info(f"Downloading recording from {audio_url} ...")
-    resp = requests.get(audio_url, timeout=30)
-    resp.raise_for_status()
+
+    # AT may fire the recording callback before the audio file is fully
+    # uploaded/available (especially with silence-timeout recordings).
+    # Retry a few times with short delays before giving up.
+    resp = None
+    for attempt in range(3):
+        resp = requests.get(audio_url, timeout=30)
+        if resp.status_code == 200:
+            break
+        logger.warning(
+            f"Download attempt {attempt + 1}/3 returned {resp.status_code}; "
+            f"retrying in 3s ..."
+        )
+        time.sleep(3)
+    else:
+        resp.raise_for_status()  # exhausted retries → raise HTTP error
 
     local_path.write_bytes(resp.content)
     logger.info(f"Saved recording to {local_path}")
