@@ -19,10 +19,13 @@ from voice.tts import synthesize
 PROMPTS = {
     "prompt_welcome": (
         "Karibu Fahamika. Tafadhali uliza swali lako kuhusu huduma za serikali, "
-        "haki, au taarifa za kiserikali baada ya beep. Bonyeza hash ukimaliza."
+        "haki, au taarifa za kiserikali baada ya mlio. Bonyeza hash ukimaliza."
     ),
     "prompt_ask_again": (
-        "Tafadhali uliza swali lako lingine baada ya beep. Bonyeza hash ukimaliza. Unaweza pia kata simu kama hauna swali lingine"
+        "Tafadhali uliza swali lako lingine baada ya mlio. Bonyeza hash ukimaliza. Unaweza pia kata simu kama hauna swali lingine"
+    ),
+    "prompt_wait": (
+        "Tafadhali subiri kwa sekunde kama thelathini hivi tunapoandaa jibu lako."
     ),
     "prompt_error_no_audio": (
         "Samahani, hatukuweza kupokea sauti yako. Tafadhali jaribu tena."

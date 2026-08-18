@@ -6,6 +6,7 @@ Endpoints:
   GET  /voice/health       — Health check
   POST /voice/incoming     — AT sends this when a call comes in
   POST /voice/recording    — AT sends this when recording completes
+  POST /voice/process      — Runs the pipeline after the "please wait" message
   POST /voice/test         — Test endpoint (bypasses AT, accepts text directly)
 
 Usage:
@@ -162,7 +163,43 @@ async def handle_recording(request: Request):
         xml = at_xml.play_and_hangup(error_audio)
         return PlainTextResponse(xml, media_type="application/xml")
 
-    # Run the pipeline INLINE (models preloaded at startup)
+    # Respond INSTANTLY with a "please wait" message + redirect to
+    # /voice/process. The heavy pipeline runs in the redirect's fresh
+    # request, while the caller listens to "Tafadhali subiri...".
+    wait_audio = f"{base_url}/voice/audio/prompt_wait.wav"
+    process_url = (
+        f"{base_url}/voice/process"
+        f"?sessionId={session_id}&recordingUrl={quote(recording_url, safe='')}"
+    )
+    xml = at_xml.play_and_redirect(wait_audio, process_url)
+    logger.info(f"→ Sent wait + redirect to /voice/process for session {session_id}")
+    return PlainTextResponse(xml, media_type="application/xml")
+
+
+@app.post("/voice/process")
+async def process_question(request: Request):
+    """
+    Runs the AI pipeline after the caller heard the "please wait" message.
+    AT redirects here from /voice/recording with sessionId + recordingUrl.
+
+    Accepts parameters from EITHER query string (redirect) or form body.
+    """
+    form = {}
+    if "application/x-www-form-urlencoded" in request.headers.get("content-type", ""):
+        form = dict(await request.form())
+    query = dict(request.query_params)
+
+    session_id = form.get("sessionId") or query.get("sessionId") or "unknown"
+    recording_url = form.get("recordingUrl") or query.get("recordingUrl") or ""
+    base_url = str(request.base_url).rstrip("/")
+
+    logger.info(f"⚙️ Processing question for session {session_id}")
+
+    if not recording_url:
+        error_audio = f"{base_url}/voice/audio/prompt_error_no_audio.wav"
+        xml = at_xml.play_and_hangup(error_audio)
+        return PlainTextResponse(xml, media_type="application/xml")
+
     try:
         result: PipelineResult = run(PipelineInput(
             audio_url=recording_url,

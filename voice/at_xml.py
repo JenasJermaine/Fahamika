@@ -123,6 +123,15 @@ def play_and_hangup(audio_url: str) -> str:
 </Response>"""
 
 
+def play_and_redirect(audio_url: str, redirect_url: str) -> str:
+    """Play a wait audio, then redirect to another callback."""
+    return f"""<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+    <Play url="{audio_url}"/>
+    <Redirect>{_escape(redirect_url)}</Redirect>
+</Response>"""
+
+
 def play_and_record_again(
     audio_url: str,
     recording_url_callback: str,
