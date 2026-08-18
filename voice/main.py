@@ -166,7 +166,7 @@ async def handle_recording(request: Request):
     # Respond INSTANTLY with a "please wait" message + redirect to
     # /voice/process. The heavy pipeline runs in the redirect's fresh
     # request, while the caller listens to "Tafadhali subiri...".
-    wait_audio = f"{base_url}/voice/audio/prompt_wait_v2.wav"
+    wait_audio = f"{base_url}/voice/audio/prompt_wait_v3.wav"
     process_url = (
         f"{base_url}/voice/process"
         f"?sessionId={session_id}&recordingUrl={quote(recording_url, safe='')}"

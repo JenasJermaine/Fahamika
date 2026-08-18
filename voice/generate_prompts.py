@@ -26,8 +26,8 @@ PROMPTS = {
         "Tafadhali uliza swali lako lingine baada ya mlio. Ukimaliza, bonyeza hash "
         "au nyamaza kwa sekunde tano. Unaweza pia kata simu kama hauna swali lingine."
     ),
-    "prompt_wait_v2": (
-        "Tafadhali subiri kwa sekunde kama thelathini hivi tunapoandaa jibu lako."
+    "prompt_wait_v3": (
+        "Tafadhali subiri kwa sekunde kama arubaini hivi tunapoandaa jibu lako."
     ),
     "prompt_error_no_audio_v2": (
         "Samahani, hatukuweza kupokea sauti yako. Tafadhali jaribu tena."
