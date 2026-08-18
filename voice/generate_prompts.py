@@ -17,9 +17,9 @@ from voice.tts import synthesize
 
 # Static prompts — spoken in Kiswahili by Sauti
 PROMPTS = {
-    "prompt_welcome_v3": (
-        "Karibu Fahamika. Tafadhali uliza swali lako kuhusu huduma za serikali, "
-        "haki, au taarifa za kiserikali baada ya mlio. Ukimaliza, bonyeza hash "
+    "prompt_welcome_v4": (
+        "Karibu Fahamika. Tafadhali uliza swali lako kuhusu haki, "
+        "huduma za serikali , au taarifa za kiserikali baada ya mlio. Ukimaliza, bonyeza hash "
         "au nyamaza kwa sekunde tano."
     ),
     "prompt_ask_again_v3": (
