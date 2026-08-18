@@ -17,12 +17,14 @@ from voice.tts import synthesize
 
 # Static prompts — spoken in Kiswahili by Sauti
 PROMPTS = {
-    "prompt_welcome_v2": (
+    "prompt_welcome_v3": (
         "Karibu Fahamika. Tafadhali uliza swali lako kuhusu huduma za serikali, "
-        "haki, au taarifa za kiserikali baada ya mlio. Bonyeza hash ukimaliza."
+        "haki, au taarifa za kiserikali baada ya mlio. Ukimaliza, bonyeza hash "
+        "au nyamaza kwa sekunde tano."
     ),
-    "prompt_ask_again_v2": (
-        "Tafadhali uliza swali lako lingine baada ya mlio. Bonyeza hash ukimaliza. Unaweza pia kata simu kama hauna swali lingine"
+    "prompt_ask_again_v3": (
+        "Tafadhali uliza swali lako lingine baada ya mlio. Ukimaliza, bonyeza hash "
+        "au nyamaza kwa sekunde tano. Unaweza pia kata simu kama hauna swali lingine."
     ),
     "prompt_wait_v2": (
         "Tafadhali subiri kwa sekunde kama thelathini hivi tunapoandaa jibu lako."
