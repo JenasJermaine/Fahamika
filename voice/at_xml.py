@@ -34,6 +34,7 @@ def answer_say_and_record(
     <Record
         finishOnKey="{finish_on_key}"
         maxLength="{max_length}"
+        timeout="5"
         trimSilence="true"
         playBeep="true"
         callbackUrl="{recording_url_callback}"
@@ -59,6 +60,7 @@ def answer_play_and_record(
     <Record
         finishOnKey="{finish_on_key}"
         maxLength="{max_length}"
+        timeout="5"
         trimSilence="true"
         playBeep="true"
         callbackUrl="{recording_url_callback}"
@@ -96,6 +98,7 @@ def say_and_record_again(
     <Record
         finishOnKey="{finish_on_key}"
         maxLength="{max_length}"
+        timeout="5"
         trimSilence="true"
         playBeep="true"
         callbackUrl="{recording_url_callback}"
@@ -150,6 +153,7 @@ def play_and_record_again(
     <Record
         finishOnKey="{finish_on_key}"
         maxLength="{max_length}"
+        timeout="5"
         trimSilence="true"
         playBeep="true"
         callbackUrl="{recording_url_callback}"
