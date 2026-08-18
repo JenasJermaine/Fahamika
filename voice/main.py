@@ -113,7 +113,7 @@ async def handle_incoming_call(request: Request):
     recording_callback = f"{base_url}/voice/recording"
 
     # Welcome + prompt + record (Play NESTED inside Record per AT docs)
-    welcome_audio = f"{base_url}/voice/audio/prompt_welcome_v3.wav"
+    welcome_audio = f"{base_url}/voice/audio/prompt_welcome_v4.wav"
 
     xml = at_xml.answer_play_and_record(
         prompt_audio_url=welcome_audio,
