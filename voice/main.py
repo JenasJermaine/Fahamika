@@ -113,7 +113,7 @@ async def handle_incoming_call(request: Request):
     recording_callback = f"{base_url}/voice/recording"
 
     # Welcome + prompt + record (Play NESTED inside Record per AT docs)
-    welcome_audio = f"{base_url}/voice/audio/prompt_welcome.wav"
+    welcome_audio = f"{base_url}/voice/audio/prompt_welcome_v2.wav"
 
     xml = at_xml.answer_play_and_record(
         prompt_audio_url=welcome_audio,
@@ -159,14 +159,14 @@ async def handle_recording(request: Request):
 
     if not recording_url:
         logger.error(f"No recording URL for session {session_id}")
-        error_audio = f"{base_url}/voice/audio/prompt_error_no_audio.wav"
+        error_audio = f"{base_url}/voice/audio/prompt_error_no_audio_v2.wav"
         xml = at_xml.play_and_hangup(error_audio)
         return PlainTextResponse(xml, media_type="application/xml")
 
     # Respond INSTANTLY with a "please wait" message + redirect to
     # /voice/process. The heavy pipeline runs in the redirect's fresh
     # request, while the caller listens to "Tafadhali subiri...".
-    wait_audio = f"{base_url}/voice/audio/prompt_wait.wav"
+    wait_audio = f"{base_url}/voice/audio/prompt_wait_v2.wav"
     process_url = (
         f"{base_url}/voice/process"
         f"?sessionId={session_id}&recordingUrl={quote(recording_url, safe='')}"
@@ -196,7 +196,7 @@ async def process_question(request: Request):
     logger.info(f"⚙️ Processing question for session {session_id}")
 
     if not recording_url:
-        error_audio = f"{base_url}/voice/audio/prompt_error_no_audio.wav"
+        error_audio = f"{base_url}/voice/audio/prompt_error_no_audio_v2.wav"
         xml = at_xml.play_and_hangup(error_audio)
         return PlainTextResponse(xml, media_type="application/xml")
 
@@ -207,7 +207,7 @@ async def process_question(request: Request):
         ))
     except Exception as e:
         logger.exception(f"Pipeline failed for session {session_id}")
-        error_audio = f"{base_url}/voice/audio/prompt_error_technical.wav"
+        error_audio = f"{base_url}/voice/audio/prompt_error_technical_v2.wav"
         xml = at_xml.play_and_hangup(error_audio)
         return PlainTextResponse(xml, media_type="application/xml")
 
@@ -222,7 +222,7 @@ async def process_question(request: Request):
         audio_url = f"{base_url}/voice/audio/{filename}"
         xml = at_xml.play_and_record_again(
             audio_url=audio_url,
-            prompt_audio_url=f"{base_url}/voice/audio/prompt_ask_again.wav",
+            prompt_audio_url=f"{base_url}/voice/audio/prompt_ask_again_v2.wav",
             recording_url_callback=recording_callback,
         )
     else:
