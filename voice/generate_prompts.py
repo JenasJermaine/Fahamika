@@ -35,6 +35,9 @@ PROMPTS = {
     "prompt_error_technical_v2": (
         "Samahani, kuna tatizo la kiufundi. Tafadhali jaribu tena baadaye."
     ),
+    "prompt_not_understood_v1": (
+        "Samahani, sikuelewa. Tafadhali jaribu tena."
+    ),
 }
 
 
