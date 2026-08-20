@@ -217,6 +217,16 @@ async def process_question(request: Request):
     # Loop: play OUR Sauti TTS audio, then record the next question
     recording_callback = f"{base_url}/voice/recording"
 
+    # Case 1: Transcription failed (empty/garbled) → play static Sauti prompt
+    if result.error == "Transcription was empty or too short":
+        not_understood = f"{base_url}/voice/audio/prompt_not_understood_v1.wav"
+        xml = at_xml.play_and_record_again(
+            audio_url=not_understood,
+            prompt_audio_url=f"{base_url}/voice/audio/prompt_ask_again_v3.wav",
+            recording_url_callback=recording_callback,
+        )
+        return PlainTextResponse(xml, media_type="application/xml")
+
     if result.tts_audio_path:
         filename = Path(result.tts_audio_path).name
         audio_url = f"{base_url}/voice/audio/{filename}"
@@ -226,9 +236,10 @@ async def process_question(request: Request):
             recording_url_callback=recording_callback,
         )
     else:
-        # Fallback: AT's <Say> voice
+        # Fallback: AT's <Say> voice with Swahili prompt
         xml = at_xml.say_and_record_again(
             answer=result.simplified_response,
+            prompt="Tafadhali uliza swali lako lingine baada ya mlio. Ukimaliza, bonyeza hash au nyamaza kwa sekunde tano. Unaweza pia kata simu kama hauna swali lingine.",
             recording_url_callback=recording_callback,
         )
     return PlainTextResponse(xml, media_type="application/xml")
